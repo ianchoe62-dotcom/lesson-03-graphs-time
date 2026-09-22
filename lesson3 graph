@@ -47,3 +47,50 @@ fig.update_layout(
 )
 
 fig.show()
+import pandas as pd
+import plotly.express as px
+
+# 1. 날짜 데이터 변환 및 월, 요일 추출
+df['date'] = pd.to_datetime(df['date'])
+df['month'] = df['date'].dt.strftime('%m월')
+
+# 월요일(0) ~ 일요일(6) 순서 정의
+weekday_order = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+df['weekday'] = df['date'].dt.weekday.map(lambda x: weekday_order[x])
+
+# 2. 월 × 요일 피벗 테이블 생성 (총 관객 수 합계)
+pivot_df = df.pivot_table(
+    index='month',
+    columns='weekday',
+    values='daily_audience',
+    aggfunc='sum',
+    fill_value=0,
+)
+
+# 3. 요일 순서를 월요일~일요일로 정렬
+pivot_df = pivot_df.reindex(columns=weekday_order)
+
+# 4. 히트맵 그래프 생성
+fig = px.imshow(
+    pivot_df,
+    labels=dict(x='요일', y='월', color='총 관객 수'),
+    x=pivot_df.columns,
+    y=pivot_df.index,
+    color_continuous_scale='Reds',  # 진할수록 관객 수가 많음을 표현 (Blues, Viridis 등 변경 가능)
+    title='<b>월 × 요일별 일관객 합계 히트맵</b>',
+    aspect='auto',
+)
+
+# 5. 호버(마우스 오버) 툴팁 및 레이아웃 설정
+fig.update_traces(
+    hovertemplate='<b>%{y} %{x}</b><br>총 관객 수: %{z:,}명<extra></extra>'
+)
+
+fig.update_layout(
+    xaxis_title='요일',
+    yaxis_title='월',
+    template='plotly_white',
+    height=450,
+)
+
+fig.show()
